@@ -25,7 +25,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${newsreader.variable} ${publicSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-panel">{children}</body>
+      <body
+        className="min-h-full flex flex-col bg-panel"
+        suppressHydrationWarning
+      >
+        {children}
+      </body>
     </html>
   );
 }
