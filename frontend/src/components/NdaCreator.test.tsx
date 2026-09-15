@@ -25,7 +25,8 @@ describe("NdaCreator", () => {
 
     await user.type(screen.getByLabelText("Governing law"), "Nevada");
 
-    expect(await screen.findByText("Nevada")).toBeInTheDocument();
+    const matches = await screen.findAllByText("Nevada");
+    expect(matches.length).toBeGreaterThan(0);
   });
 
   it("fills the live document as the user types the purpose", async () => {

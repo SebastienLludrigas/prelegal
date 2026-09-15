@@ -74,22 +74,6 @@ body {
 }
 
 @media print {
-  body * {
-    visibility: hidden;
-  }
-  #mnda-print-area,
-  #mnda-print-area * {
-    visibility: visible;
-  }
-  #mnda-print-area {
-    position: absolute;
-    inset: 0;
-    box-shadow: none !important;
-    border: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    max-width: none !important;
-  }
   @page {
     size: letter;
     margin: 1in;
