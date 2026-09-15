@@ -26,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${newsreader.variable} ${publicSans.variable} h-full antialiased`}
     >
       <body
-        className="min-h-full flex flex-col bg-panel"
+        className="min-h-full flex flex-col bg-panel print:bg-white"
         suppressHydrationWarning
       >
         {children}

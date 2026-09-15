@@ -51,7 +51,7 @@ export function NdaDocument(props: NdaDocumentProps) {
  */
 export function NdaPrintDocument(props: NdaDocumentProps) {
   return (
-    <div className="hidden bg-paper print:block">
+    <div className="hidden print:block">
       <NdaDocumentContent {...props} />
     </div>
   );
