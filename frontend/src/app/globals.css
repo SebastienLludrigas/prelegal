@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #1b2430;
+  --ink-soft: #4a5568;
+  --ink-faint: #8a93a3;
+  --paper: #faf8f3;
+  --paper-line: #ddd6c4;
+  --panel: #eef0f2;
+  --panel-line: #d3d8de;
+  --accent: #6b1e2b;
+  --accent-soft: #f1e4e6;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-paper: var(--paper);
+  --color-paper-line: var(--paper-line);
+  --color-panel: var(--panel);
+  --color-panel-line: var(--panel-line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --font-serif: var(--font-newsreader);
+  --font-sans: var(--font-public-sans);
+}
+
+body {
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+/* A blank in the legal text: an underline until filled, then quiet ink text. */
+.mnda-blank {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.mnda-blank--empty {
+  color: var(--ink-faint);
+  font-style: normal;
+  border-bottom: 1px solid var(--ink-faint);
+  padding: 0 2px;
+}
+
+.mnda-doc :where(p, li) {
+  margin: 0 0 1em 0;
+}
+
+.mnda-doc ol {
+  list-style: none;
+  counter-reset: clause;
+  padding: 0;
+  margin: 0;
+}
+
+.mnda-doc ol > li {
+  counter-increment: clause;
+  position: relative;
+  padding-left: 2.1em;
+}
+
+.mnda-doc ol > li::before {
+  content: counter(clause) ".";
+  position: absolute;
+  left: 0;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.mnda-doc strong {
+  font-weight: 600;
+}
+
+@media print {
+  @page {
+    size: letter;
+    margin: 1in;
+  }
+}
