@@ -1,0 +1,12 @@
+**/.git
+**/node_modules
+**/.next
+**/out
+**/.venv
+**/__pycache__
+**/*.pyc
+backend/.pytest_cache
+backend/.ruff_cache
+.env
+.env.*
+!.env.example

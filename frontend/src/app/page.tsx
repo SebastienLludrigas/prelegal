@@ -1,3 +1,4 @@
+import { AppGate } from "@/components/AppGate";
 import { NdaCreator } from "@/components/NdaCreator";
 import {
   extractCoverPageFooter,
@@ -13,10 +14,12 @@ export default function Home() {
   const coverPageSource = readCoverPageSource();
 
   return (
-    <NdaCreator
-      standardTermsSource={standardTermsSource}
-      coverPageIntro={extractCoverPageIntro(coverPageSource)}
-      coverPageFooter={extractCoverPageFooter(coverPageSource)}
-    />
+    <AppGate>
+      <NdaCreator
+        standardTermsSource={standardTermsSource}
+        coverPageIntro={extractCoverPageIntro(coverPageSource)}
+        coverPageFooter={extractCoverPageFooter(coverPageSource)}
+      />
+    </AppGate>
   );
 }
