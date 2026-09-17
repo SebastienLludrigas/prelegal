@@ -27,7 +27,7 @@ export function NdaCreator({
 
   return (
     <>
-      <div className="flex flex-1 flex-col print:hidden lg:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col print:hidden lg:flex-row">
         <div className="flex flex-col border-b border-panel-line bg-panel lg:w-[420px] lg:shrink-0 lg:border-b-0 lg:border-r">
           <header className="border-b border-panel-line px-6 py-5">
             <p className="text-[13px] font-medium text-ink-soft">
@@ -60,7 +60,7 @@ export function NdaCreator({
           </div>
 
           <div
-            className={`flex-1 overflow-y-auto px-6 py-6 ${
+            className={`min-h-0 flex-1 overflow-y-auto px-6 py-6 ${
               mobileView === "document" ? "hidden lg:block" : ""
             }`}
           >
@@ -73,7 +73,7 @@ export function NdaCreator({
         </div>
 
         <div
-          className={`flex-1 overflow-y-auto bg-panel px-4 py-10 sm:px-8 ${
+          className={`min-h-0 flex-1 overflow-y-auto bg-panel px-4 py-10 sm:px-8 ${
             mobileView === "form" ? "hidden lg:block" : ""
           }`}
         >
