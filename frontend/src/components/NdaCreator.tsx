@@ -78,7 +78,7 @@ export function NdaCreator({
         </div>
 
         <div
-          className={`min-h-0 flex-1 overflow-y-auto bg-panel px-4 py-10 sm:px-8 ${
+          className={`min-h-0 min-w-0 flex-1 overflow-y-auto bg-panel px-4 py-10 sm:px-8 ${
             mobileView === "form" ? "hidden lg:block" : ""
           }`}
         >

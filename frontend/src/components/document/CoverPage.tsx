@@ -6,16 +6,16 @@ import { InlineMarkdown } from "./InlineMarkdown";
 function PartyColumn({ party }: { party: PartyDetails }) {
   return (
     <>
-      <td className="border border-paper-line px-3 py-2 align-top">
+      <td className="border border-paper-line px-3 py-2 align-top break-words">
         <Blank value={party.signatoryName} placeholder="Print name" />
       </td>
-      <td className="border border-paper-line px-3 py-2 align-top">
+      <td className="border border-paper-line px-3 py-2 align-top break-words">
         <Blank value={party.title} placeholder="Title" />
       </td>
-      <td className="border border-paper-line px-3 py-2 align-top">
+      <td className="border border-paper-line px-3 py-2 align-top break-words">
         <Blank value={party.company} placeholder="Company" />
       </td>
-      <td className="border border-paper-line px-3 py-2 align-top">
+      <td className="border border-paper-line px-3 py-2 align-top break-words">
         <Blank value={party.noticeAddress} placeholder="Notice address" />
       </td>
     </>
@@ -109,7 +109,7 @@ export function CoverPage({
         as of the Effective Date.
       </p>
 
-      <table className="w-full border-collapse text-[13.5px]">
+      <table className="w-full table-fixed border-collapse text-[13.5px]">
         <thead>
           <tr>
             <th className="border border-paper-line bg-paper px-3 py-2 text-left font-medium text-ink-soft">
