@@ -72,8 +72,12 @@ Note: "the initial implementation is a frontend-only prototype" above is now his
 - `AppGate` / `LoginScreen`: fake login gate on the frontend, no real session held
 - Whole project packaged into a single Dockerfile; start/stop scripts in `scripts/` for Mac, Linux, Windows
 
+### Completed (PL-6)
+- Freeform AI chat replaces the manual Mutual NDA form: `ChatPanel` (frontend) talks to `POST /api/chat` (backend), which calls Cerebras via OpenRouter (LiteLLM, Structured Outputs) and returns a reply plus the subset of fields it extracted
+- Backend is stateless: the frontend resends the full message history each turn; extracted fields are merged client-side into the document state field-by-field, so earlier answers are never overwritten by an unrelated turn
+- Chat history and filled-in fields are not persisted — lost on refresh, same as the rest of the app pre-PL-8
+
 ### Not started
-- **PL-6** — AI chat for the Mutual NDA (Cerebras via OpenRouter, structured outputs — see "AI design" above)
 - **PL-7** — support for the remaining document types in `catalog.json`
 - **PL-8** — real multi-user auth (password hashing, sessions) and final polish
 

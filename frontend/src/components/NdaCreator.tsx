@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { ChatPanel } from "@/components/chat/ChatPanel";
 import { DownloadButton } from "@/components/DownloadButton";
 import { NdaDocument, NdaPrintDocument } from "@/components/document/NdaDocument";
-import { NdaForm } from "@/components/form/NdaForm";
+import { mergeNdaFields } from "@/lib/chat/mergeNdaFields";
 import { defaultNdaFormData, type NdaFormData } from "@/lib/nda/types";
 
 export function NdaCreator({
@@ -60,11 +61,15 @@ export function NdaCreator({
           </div>
 
           <div
-            className={`min-h-0 flex-1 overflow-y-auto px-6 py-6 ${
-              mobileView === "document" ? "hidden lg:block" : ""
+            className={`flex min-h-0 flex-1 flex-col px-6 py-6 ${
+              mobileView === "document" ? "hidden lg:flex" : ""
             }`}
           >
-            <NdaForm value={form} onChange={setForm} />
+            <ChatPanel
+              onFieldsExtracted={(patch) =>
+                setForm((current) => mergeNdaFields(current, patch))
+              }
+            />
           </div>
 
           <div className="border-t border-panel-line px-6 py-4">
