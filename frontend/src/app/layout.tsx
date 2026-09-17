@@ -23,10 +23,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${newsreader.variable} ${publicSans.variable} h-full antialiased`}
+      className={`${newsreader.variable} ${publicSans.variable} h-dvh overflow-hidden antialiased print:h-auto print:overflow-visible`}
     >
       <body
-        className="min-h-full flex flex-col bg-panel print:bg-white"
+        className="flex h-dvh flex-col overflow-hidden bg-panel print:h-auto print:overflow-visible print:bg-white"
         suppressHydrationWarning
       >
         {children}
