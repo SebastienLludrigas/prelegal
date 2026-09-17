@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NdaCreator } from "./NdaCreator";
 
 const standardTermsSource = `# Standard Terms
@@ -18,40 +18,60 @@ function renderCreator() {
   );
 }
 
+function mockChatReply(fields: Record<string, unknown>) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () =>
+      new Response(
+        JSON.stringify({ reply: "Got it, thanks!", fields }),
+        { status: 200 }
+      )
+    )
+  );
+}
+
 describe("NdaCreator", () => {
-  it("reflects the governing law in the cover page as the user types it", async () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("fills the live document with the purpose extracted from the chat", async () => {
+    mockChatReply({ purpose: "Evaluate a joint venture." });
     renderCreator();
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText("Governing law"), "Nevada");
+    await user.type(
+      screen.getByLabelText("Message"),
+      "We want to evaluate a joint venture"
+    );
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    const matches = await screen.findAllByText(/Evaluate a joint venture\./);
+    expect(matches.length).toBeGreaterThan(0);
+  });
+
+  it("reflects the governing law extracted from the chat in the cover page", async () => {
+    mockChatReply({ governingLaw: "Nevada" });
+    renderCreator();
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText("Message"), "Governing law is Nevada");
+    await user.click(screen.getByRole("button", { name: "Send" }));
 
     const matches = await screen.findAllByText("Nevada");
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  it("fills the live document as the user types the purpose", async () => {
+  it("switches the MNDA term wording when the AI extracts the open-ended option", async () => {
+    mockChatReply({ mndaTerm: "continues" });
     renderCreator();
     const user = userEvent.setup();
 
-    const purposeField = screen.getByLabelText("Purpose");
-    await user.clear(purposeField);
-    await user.type(purposeField, "Evaluate a joint venture.");
-
-    const matches = await screen.findAllByText(
-      /Evaluate a joint venture\./
+    await user.type(
+      screen.getByLabelText("Message"),
+      "The MNDA should continue until terminated"
     );
-    expect(matches.length).toBeGreaterThan(0);
-  });
-
-  it("switches the MNDA term wording when the open-ended option is chosen", async () => {
-    renderCreator();
-    const user = userEvent.setup();
-
-    await user.click(
-      screen.getByLabelText(
-        /Continues until terminated in accordance with the terms of the MNDA\./
-      )
-    );
+    await user.click(screen.getByRole("button", { name: "Send" }));
 
     const matches = await screen.findAllByText(
       "Continues until terminated in accordance with the terms of the MNDA."
