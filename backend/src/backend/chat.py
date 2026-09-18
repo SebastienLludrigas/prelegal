@@ -33,6 +33,20 @@ FOLLOW_UP_INSTRUCTION = (
     "question once every field above is known."
 )
 
+CONSISTENCY_INSTRUCTION = (
+    "Before accepting the user's last answer, check it against every field "
+    "already collected earlier in the conversation and reject it — leave that "
+    "field null — if it is inconsistent or implausible. In particular: a date "
+    "must be a real calendar date and must not fall before another date it is "
+    "supposed to follow (e.g. an end date before the effective/start date, an "
+    "expiration before the date it takes effect); a value must make sense for "
+    "what the field is actually asking (e.g. a person or company name where a "
+    "place, date, or amount is expected, or an implausible one-word answer for "
+    "a territory or address). When you reject a value this way, do not just "
+    "silently move on: your reply must point out the specific problem and ask "
+    "the user to confirm or correct it."
+)
+
 
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant"]
@@ -85,6 +99,8 @@ def _selection_system_prompt(catalog: list[documents.DocumentType]) -> str:
         "has clearly told you or confirmed which document they want, set "
         "documentType to its id. " + FOLLOW_UP_INSTRUCTION
     )
+    # Selection turns don't collect document fields, so CONSISTENCY_INSTRUCTION
+    # doesn't apply here.
 
 
 def _build_selection_model(catalog: list[documents.DocumentType]) -> type[BaseModel]:
@@ -126,6 +142,8 @@ period) or "perpetual" - and confidentialityTermYears if "fixed"
 Only return fields the user just told you or already clearly stated earlier \
 in the conversation. Never invent values. Leave a field null if it is still \
 unknown. Keep replies concise. """
+    + CONSISTENCY_INSTRUCTION
+    + " "
     + FOLLOW_UP_INSTRUCTION
 )
 
@@ -176,7 +194,10 @@ def _generic_system_prompt(
         f"{listing}\n\n"
         "Only return fields the user just told you or already clearly stated "
         "earlier in the conversation. Never invent values. Leave a field null if "
-        "it is still unknown. Keep replies concise. " + FOLLOW_UP_INSTRUCTION
+        "it is still unknown. Keep replies concise. "
+        + CONSISTENCY_INSTRUCTION
+        + " "
+        + FOLLOW_UP_INSTRUCTION
     )
 
 

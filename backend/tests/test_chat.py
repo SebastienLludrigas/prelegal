@@ -183,6 +183,35 @@ def test_chat_runs_the_generic_path_for_a_non_nda_document(client, monkeypatch):
     assert "Breach Notification Period" in system_prompt
 
 
+def test_chat_prompts_include_the_consistency_check_for_nda_and_generic_docs(
+    client, monkeypatch
+):
+    captured = []
+
+    def fake_completion(**kwargs):
+        captured.append(kwargs["messages"][0]["content"])
+        return _fake_completion_response(reply="ok", fields={})
+
+    monkeypatch.setattr(chat, "completion", fake_completion)
+
+    client.post(
+        "/api/chat",
+        json={
+            "documentType": "mutual-nda",
+            "messages": [{"role": "user", "content": "hello"}],
+        },
+    )
+    client.post(
+        "/api/chat",
+        json={
+            "documentType": "baa",
+            "messages": [{"role": "user", "content": "hello"}],
+        },
+    )
+
+    assert all(chat.CONSISTENCY_INSTRUCTION in prompt for prompt in captured)
+
+
 def test_chat_rejects_an_unknown_document_type(client, monkeypatch):
     response = client.post(
         "/api/chat",
