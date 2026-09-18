@@ -1,10 +1,15 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import type { SessionUser } from "@/lib/auth/types";
 
 type Mode = "signin" | "signup";
 
-export function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
+export function LoginScreen({
+  onSuccess,
+}: {
+  onSuccess: (user: SessionUser) => void;
+}) {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,11 +28,12 @@ export function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
         body: JSON.stringify({ email, password }),
       });
       if (!response.ok) {
-        throw new Error("Request failed");
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.detail ?? "Something went wrong. Please try again.");
       }
-      onSuccess();
-    } catch {
-      setError("Something went wrong. Please try again.");
+      onSuccess(await response.json());
+    } catch (thrown) {
+      setError(thrown instanceof Error ? thrown.message : "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -77,6 +83,7 @@ export function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
             <input
               type="password"
               required
+              minLength={8}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="rounded-[3px] border border-panel-line bg-white px-3 py-2 text-[14px] text-ink"
@@ -88,7 +95,7 @@ export function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
           <button
             type="submit"
             disabled={submitting}
-            className="mt-2 w-full rounded-[3px] bg-accent px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-[#551723] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-accent disabled:opacity-60"
+            className="mt-2 w-full rounded-[3px] bg-accent px-4 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-[#5b2c70] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-accent disabled:opacity-60"
           >
             {mode === "signin" ? "Sign in" : "Sign up"}
           </button>

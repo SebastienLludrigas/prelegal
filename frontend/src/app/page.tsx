@@ -1,5 +1,4 @@
 import { AppGate } from "@/components/AppGate";
-import { DocumentCreator } from "@/components/DocumentCreator";
 import { readGenericDocumentSources } from "@/lib/documents/catalogSource";
 import {
   extractCoverPageFooter,
@@ -15,13 +14,11 @@ export default function Home() {
   const coverPageSource = readCoverPageSource();
 
   return (
-    <AppGate>
-      <DocumentCreator
-        ndaStandardTermsSource={standardTermsSource}
-        ndaCoverPageIntro={extractCoverPageIntro(coverPageSource)}
-        ndaCoverPageFooter={extractCoverPageFooter(coverPageSource)}
-        genericDocuments={readGenericDocumentSources()}
-      />
-    </AppGate>
+    <AppGate
+      ndaStandardTermsSource={standardTermsSource}
+      ndaCoverPageIntro={extractCoverPageIntro(coverPageSource)}
+      ndaCoverPageFooter={extractCoverPageFooter(coverPageSource)}
+      genericDocuments={readGenericDocumentSources()}
+    />
   );
 }

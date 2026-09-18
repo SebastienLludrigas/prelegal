@@ -1,6 +1,7 @@
 import type { NdaFormData } from "@/lib/nda/types";
 import { deriveStandardTermsValues, fillStandardTerms } from "@/lib/nda/fillTemplate";
 import { CoverPage } from "./CoverPage";
+import { DraftDisclaimer } from "./DraftDisclaimer";
 import { StandardTerms } from "./StandardTerms";
 
 function NdaDocumentContent({
@@ -24,6 +25,7 @@ function NdaDocumentContent({
       <CoverPage form={form} intro={coverPageIntro} footer={coverPageFooter} />
       <hr className="my-10 border-t border-paper-line" />
       <StandardTerms filledMarkdown={filledStandardTerms} />
+      <DraftDisclaimer />
     </>
   );
 }

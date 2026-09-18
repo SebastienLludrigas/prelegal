@@ -1,5 +1,6 @@
 import type { GenericFormData } from "@/lib/documents/fillGenericTemplate";
 import { fillGenericTemplate } from "@/lib/documents/fillGenericTemplate";
+import { DraftDisclaimer } from "./DraftDisclaimer";
 import { StandardTerms } from "./StandardTerms";
 
 function GenericDocumentContent({
@@ -16,6 +17,7 @@ function GenericDocumentContent({
       <p className="text-[12.5px] font-medium text-ink-soft">{name}</p>
       <hr className="my-6 border-t border-paper-line" />
       <StandardTerms filledMarkdown={fillGenericTemplate(standardTermsSource, fields)} />
+      <DraftDisclaimer />
     </>
   );
 }
