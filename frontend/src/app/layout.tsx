@@ -14,9 +14,9 @@ const publicSans = Public_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Mutual NDA Creator",
+  title: "Legal Document Creator",
   description:
-    "Fill in your Mutual NDA and download a ready-to-sign document.",
+    "Chat with an assistant to draft a legal agreement and download a ready-to-sign document.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

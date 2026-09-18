@@ -1,5 +1,6 @@
 import { AppGate } from "@/components/AppGate";
-import { NdaCreator } from "@/components/NdaCreator";
+import { DocumentCreator } from "@/components/DocumentCreator";
+import { readGenericDocumentSources } from "@/lib/documents/catalogSource";
 import {
   extractCoverPageFooter,
   extractCoverPageIntro,
@@ -15,10 +16,11 @@ export default function Home() {
 
   return (
     <AppGate>
-      <NdaCreator
-        standardTermsSource={standardTermsSource}
-        coverPageIntro={extractCoverPageIntro(coverPageSource)}
-        coverPageFooter={extractCoverPageFooter(coverPageSource)}
+      <DocumentCreator
+        ndaStandardTermsSource={standardTermsSource}
+        ndaCoverPageIntro={extractCoverPageIntro(coverPageSource)}
+        ndaCoverPageFooter={extractCoverPageFooter(coverPageSource)}
+        genericDocuments={readGenericDocumentSources()}
       />
     </AppGate>
   );

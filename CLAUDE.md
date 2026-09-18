@@ -77,7 +77,12 @@ Note: "the initial implementation is a frontend-only prototype" above is now his
 - Backend is stateless: the frontend resends the full message history each turn; extracted fields are merged client-side into the document state field-by-field, so earlier answers are never overwritten by an unrelated turn
 - Chat history and filled-in fields are not persisted — lost on refresh, same as the rest of the app pre-PL-8
 
+### Completed (PL-7)
+- Chat now starts with no document type preselected: the AI identifies which of the 12 `catalog.json` entries the user wants (the NDA's two entries collapse into one `mutual-nda` document type), or explains it's unsupported and suggests the closest match, waiting for confirmation before proceeding
+- The Mutual NDA keeps its hand-written field schema and cover-page UI from PL-6, unchanged; the other 11 document types derive their fields generically from the `_link` spans in their `templates/*.md` Standard Terms (no per-document hand curation), rendered with the same generic markdown preview, filled inline
+- Fixed: keyboard focus now returns to the chat input after every reply (success or error)
+- Strengthened the system prompt so the AI reliably asks a follow-up question whenever a field is still missing
+
 ### Not started
-- **PL-7** — support for the remaining document types in `catalog.json`
 - **PL-8** — real multi-user auth (password hashing, sessions) and final polish
 

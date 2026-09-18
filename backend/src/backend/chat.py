@@ -1,24 +1,146 @@
-"""Freeform AI chat for the Mutual NDA.
+"""Freeform AI chat guiding a user through drafting any of the catalog's documents.
 
-The AI asks the user about the document's fields and returns, alongside its
-reply, the subset of fields it could extract from the conversation so far.
-The frontend merges these into the document it already holds and keeps the
-full message history, so this endpoint is stateless.
+The first turn(s) of a conversation have no document type yet: the AI identifies
+which catalog document the user wants, or explains it's unsupported and suggests
+the closest one. Once a document type is resolved, the AI asks about that
+document's fields one at a time, alongside its reply. The Mutual NDA keeps its
+own hand-written field schema (nested party details, term options), since it
+predates this generic mechanism and already has a tested UI; every other
+document derives its fields directly from the `_link` spans in its template.
+The frontend resends the full message history and the resolved document type
+each turn, so this endpoint is stateless.
 """
 
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
 from litellm import completion
 from openai import APIError
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, create_model
+
+from backend import documents
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 MODEL = "openrouter/openai/gpt-oss-120b"
 EXTRA_BODY = {"provider": {"order": ["cerebras"]}}
 
-SYSTEM_PROMPT = """You are a helpful legal assistant guiding a user through \
+FOLLOW_UP_INSTRUCTION = (
+    "Before replying, check the field list above against the whole "
+    "conversation so far. If any field is still unknown, your reply MUST end "
+    "with a direct question asking for one of those missing fields — never "
+    "end your reply with only an acknowledgement or summary. Only skip the "
+    "question once every field above is known."
+)
+
+CONSISTENCY_INSTRUCTION = (
+    "Before accepting the user's last answer, check it against every field "
+    "already collected earlier in the conversation and reject it — leave that "
+    "field null — if it is inconsistent or implausible. In particular: a date "
+    "must be a real calendar date and must not fall before another date it is "
+    "supposed to follow (e.g. an end date before the effective/start date, an "
+    "expiration before the date it takes effect); a value must make sense for "
+    "what the field is actually asking (e.g. a person or company name where a "
+    "place, date, or amount is expected, or an implausible one-word answer for "
+    "a territory or address). When you reject a value this way, do not just "
+    "silently move on: your reply must point out the specific problem and ask "
+    "the user to confirm or correct it — but see the flexibility rule below "
+    "for what to do when the user asked you to invent the value yourself."
+)
+
+FLEXIBILITY_INSTRUCTION = (
+    "Be flexible and pragmatic, in whatever language the user writes in. If "
+    "the user asks you to invent, make up, or choose a value yourself (for "
+    'example "invente", "peu importe", "n\'importe quoi", "make '
+    'something up", "you choose", "whatever works"), pick a reasonable '
+    "value yourself for the field(s) currently being asked about — one that "
+    "still satisfies the consistency rule above (e.g. a date on or after any "
+    "date it must follow) — say what you filled in, and move on to the next "
+    "missing field; do not ask the same question again. If the user says a "
+    "field doesn't apply, or that they don't know or don't have that "
+    "information, leave it null and move on instead of repeating the "
+    "question. Never ask the exact same question twice in a row — if the "
+    "previous answer didn't work, rephrase the question or give a concrete "
+    "example instead of repeating it verbatim."
+)
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+    documentType: str | None = None
+
+
+def _complete(
+    system_prompt: str, request: ChatRequest, response_model: type[BaseModel]
+) -> BaseModel:
+    messages = [{"role": "system", "content": system_prompt}] + [
+        {"role": message.role, "content": message.content}
+        for message in request.messages
+    ]
+    try:
+        response = completion(
+            model=MODEL,
+            messages=messages,
+            response_format=response_model,
+            reasoning_effort="medium",
+            extra_body=EXTRA_BODY,
+        )
+        result = response.choices[0].message.content
+        return response_model.model_validate_json(result)
+    except (APIError, ValidationError) as error:
+        raise HTTPException(
+            status_code=502, detail="The AI assistant is unavailable right now."
+        ) from error
+
+
+# ---- Document selection (no document type resolved yet) ----
+
+
+def _selection_system_prompt(catalog: list[documents.DocumentType]) -> str:
+    listing = "\n".join(
+        f"- {doc.id}: {doc.name} — {doc.description}" for doc in catalog
+    )
+    return (
+        "You are a helpful legal assistant helping a user pick which document to "
+        "create. Here are the documents you can generate:\n"
+        f"{listing}\n\n"
+        "Ask what they need if it's unclear. If they describe something this list "
+        "doesn't cover, explain you can't generate that, but suggest the single "
+        "closest document from the list and ask if they'd like to proceed with "
+        "that instead — leave documentType null until they confirm. Once the user "
+        "has clearly told you or confirmed which document they want, set "
+        "documentType to its id. " + FOLLOW_UP_INSTRUCTION
+    )
+    # Selection turns don't collect document fields, so CONSISTENCY_INSTRUCTION
+    # doesn't apply here.
+
+
+def _build_selection_model(catalog: list[documents.DocumentType]) -> type[BaseModel]:
+    ids = tuple(doc.id for doc in catalog)
+    return create_model(
+        "SelectionResult",
+        reply=(str, ...),
+        documentType=(Literal[ids] | None, None),
+    )
+
+
+def _run_selection_turn(
+    request: ChatRequest, catalog: list[documents.DocumentType]
+) -> dict[str, Any]:
+    model = _build_selection_model(catalog)
+    result = _complete(_selection_system_prompt(catalog), request, model)
+    return {"reply": result.reply, "documentType": result.documentType}
+
+
+# ---- Mutual NDA (hand-written schema, unchanged since PL-6) ----
+
+NDA_SYSTEM_PROMPT = (
+    """You are a helpful legal assistant guiding a user through \
 filling out a Mutual Non-Disclosure Agreement (NDA). Ask about one or a few \
 related fields at a time, in a natural conversational tone. The fields to \
 collect are:
@@ -35,9 +157,15 @@ period) or "perpetual" - and confidentialityTermYears if "fixed"
 - modifications: any custom modifications to the standard terms (optional)
 
 Only return fields the user just told you or already clearly stated earlier \
-in the conversation. Never invent values. Leave a field null if it is still \
-unknown. Keep replies concise and ask for the next missing piece of \
-information."""
+in the conversation, unless they ask you to invent or choose one yourself \
+(see the flexibility rule below). Leave a field null if it is still unknown. \
+Keep replies concise. """
+    + CONSISTENCY_INSTRUCTION
+    + " "
+    + FLEXIBILITY_INSTRUCTION
+    + " "
+    + FOLLOW_UP_INSTRUCTION
+)
 
 
 class PartyDetailsFields(BaseModel):
@@ -61,38 +189,71 @@ class NdaFields(BaseModel):
     modifications: str | None = None
 
 
-class ChatTurnResult(BaseModel):
+class NdaChatTurnResult(BaseModel):
     reply: str
     fields: NdaFields
 
 
-class ChatMessage(BaseModel):
-    role: Literal["user", "assistant"]
-    content: str
+def _run_nda_turn(request: ChatRequest) -> dict[str, Any]:
+    result = _complete(NDA_SYSTEM_PROMPT, request, NdaChatTurnResult)
+    assert isinstance(result, NdaChatTurnResult)
+    return {"reply": result.reply, "fields": result.fields.model_dump()}
 
 
-class ChatRequest(BaseModel):
-    messages: list[ChatMessage]
+# ---- Generic documents (fields derived from the template's `_link` spans) ----
+
+
+def _generic_system_prompt(
+    document: documents.DocumentType, field_names: list[str]
+) -> str:
+    listing = "\n".join(f"- {name}" for name in field_names)
+    return (
+        f"You are a helpful legal assistant guiding a user through filling out a "
+        f"{document.name}. Ask about one or a few related fields at a time, in a "
+        "natural conversational tone. The fields to collect are:\n"
+        f"{listing}\n\n"
+        "Only return fields the user just told you or already clearly stated "
+        "earlier in the conversation, unless they ask you to invent or choose "
+        "one yourself (see the flexibility rule below). Leave a field null if "
+        "it is still unknown. Keep replies concise. "
+        + CONSISTENCY_INSTRUCTION
+        + " "
+        + FLEXIBILITY_INSTRUCTION
+        + " "
+        + FOLLOW_UP_INSTRUCTION
+    )
+
+
+def _build_generic_model(field_names: list[str]) -> type[BaseModel]:
+    slugs = {documents.slugify_field_name(name) for name in field_names}
+    fields_model = create_model(
+        "GenericFields", **{slug: (str | None, None) for slug in slugs}
+    )
+    return create_model(
+        "GenericChatTurnResult", reply=(str, ...), fields=(fields_model, ...)
+    )
+
+
+def _run_generic_turn(
+    request: ChatRequest, document: documents.DocumentType
+) -> dict[str, Any]:
+    field_names = documents.fields_for(document)
+    model = _build_generic_model(field_names)
+    result = _complete(_generic_system_prompt(document, field_names), request, model)
+    return {"reply": result.reply, "fields": result.fields.model_dump()}
 
 
 @router.post("")
-def chat(request: ChatRequest) -> ChatTurnResult:
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + [
-        {"role": message.role, "content": message.content}
-        for message in request.messages
-    ]
+def chat(request: ChatRequest) -> dict[str, Any]:
+    catalog = documents.load_catalog()
 
-    try:
-        response = completion(
-            model=MODEL,
-            messages=messages,
-            response_format=ChatTurnResult,
-            reasoning_effort="low",
-            extra_body=EXTRA_BODY,
-        )
-        result = response.choices[0].message.content
-        return ChatTurnResult.model_validate_json(result)
-    except (APIError, ValidationError) as error:
-        raise HTTPException(
-            status_code=502, detail="The AI assistant is unavailable right now."
-        ) from error
+    if request.documentType is None:
+        return _run_selection_turn(request, catalog)
+
+    if request.documentType == documents.NDA_DOCUMENT_ID:
+        return _run_nda_turn(request)
+
+    document = next((doc for doc in catalog if doc.id == request.documentType), None)
+    if document is None:
+        raise HTTPException(status_code=400, detail="Unknown document type.")
+    return _run_generic_turn(request, document)

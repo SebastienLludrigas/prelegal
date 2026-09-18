@@ -1,51 +1,82 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import type { ChatMessage, ChatTurnResult, NdaFieldsPatch } from "@/lib/chat/types";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import type { ChatApiResponse, ChatMessage } from "@/lib/chat/types";
 
 const GREETING: ChatMessage = {
   role: "assistant",
-  content:
-    "Let's set up your Mutual NDA. To start, what's the name of your company (Party One)?",
+  content: "What legal document would you like to create today?",
 };
 
+async function postChatTurn(
+  history: ChatMessage[],
+  documentType: string | null
+): Promise<ChatApiResponse> {
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages: history, documentType }),
+  });
+  if (!response.ok) {
+    throw new Error("Request failed");
+  }
+  return response.json();
+}
+
 export function ChatPanel({
+  onDocumentTypeResolved,
   onFieldsExtracted,
 }: {
-  onFieldsExtracted: (patch: NdaFieldsPatch) => void;
+  onDocumentTypeResolved: (documentType: string) => void;
+  onFieldsExtracted: (documentType: string, fields: Record<string, unknown>) => void;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [documentType, setDocumentType] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, [messages, error]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = draft.trim();
     if (!content) return;
 
-    const history = [...messages, { role: "user" as const, content }];
+    let history = [...messages, { role: "user" as const, content }];
     setMessages(history);
     setDraft("");
     setError(null);
     setSubmitting(true);
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
-      });
-      if (!response.ok) {
-        throw new Error("Request failed");
+      let turn = await postChatTurn(history, documentType);
+      history = [...history, { role: "assistant" as const, content: turn.reply }];
+
+      let resolvedType = documentType;
+      if (!resolvedType && turn.documentType) {
+        resolvedType = turn.documentType;
+        setDocumentType(resolvedType);
+        onDocumentTypeResolved(resolvedType);
+        // The document type just became known: continue the same conversation
+        // right away so the assistant can ask its first real question about it.
+        turn = await postChatTurn(history, resolvedType);
+        history = [...history, { role: "assistant" as const, content: turn.reply }];
       }
-      const result: ChatTurnResult = await response.json();
-      setMessages([...history, { role: "assistant", content: result.reply }]);
-      onFieldsExtracted(result.fields);
+
+      setMessages(history);
+      if (resolvedType && turn.fields) {
+        onFieldsExtracted(resolvedType, turn.fields);
+      }
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
+      inputRef.current?.focus();
     }
   }
 
@@ -64,6 +95,7 @@ export function ChatPanel({
             {message.content}
           </p>
         ))}
+        <div ref={bottomRef} />
       </div>
 
       {error && <p className="mt-2 text-[13px] text-red-700">{error}</p>}
@@ -73,7 +105,9 @@ export function ChatPanel({
           Message
         </label>
         <input
+          ref={inputRef}
           id="chat-message"
+          autoFocus
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           className="flex-1 rounded-[3px] border border-panel-line bg-white px-3 py-2 text-[14px] text-ink"

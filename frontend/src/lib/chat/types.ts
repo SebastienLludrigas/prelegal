@@ -26,7 +26,9 @@ export type NdaFieldsPatch = {
   modifications?: string | null;
 };
 
-export type ChatTurnResult = {
+/** The raw shape returned by POST /api/chat, before the document type is known to the caller. */
+export type ChatApiResponse = {
   reply: string;
-  fields: NdaFieldsPatch;
+  documentType?: string | null;
+  fields?: Record<string, unknown>;
 };

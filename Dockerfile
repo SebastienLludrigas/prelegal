@@ -5,6 +5,7 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /repo
 COPY templates/ ./templates/
+COPY catalog.json ./catalog.json
 WORKDIR /repo/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
@@ -32,6 +33,11 @@ RUN groupadd --system --gid 999 nonroot \
 WORKDIR /app
 COPY --from=backend-build --chown=nonroot:nonroot /app /app
 COPY --from=frontend-build --chown=nonroot:nonroot /repo/frontend/out /app/frontend_dist
+# The backend reads catalog.json and templates/*.md at runtime (chat.py -> documents.py),
+# resolving them as "../catalog.json" / "../templates" relative to its cwd (/app) — so
+# they're placed as siblings of /app, mirroring the frontend build's own relative layout.
+COPY --chown=nonroot:nonroot catalog.json /catalog.json
+COPY --chown=nonroot:nonroot templates/ /templates/
 RUN mkdir -p /app/data && chown nonroot:nonroot /app/data
 
 ENV PATH="/app/.venv/bin:$PATH"
