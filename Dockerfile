@@ -5,6 +5,7 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /repo
 COPY templates/ ./templates/
+COPY catalog.json ./catalog.json
 WORKDIR /repo/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
