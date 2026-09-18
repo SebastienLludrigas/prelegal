@@ -15,3 +15,13 @@ def client(tmp_path, monkeypatch):
 
     with TestClient(main.app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def auth_client(client):
+    """A client already signed up and holding a session cookie."""
+    client.post(
+        "/api/auth/signup",
+        json={"email": "user@example.com", "password": "password123"},
+    )
+    return client

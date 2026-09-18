@@ -11,33 +11,69 @@ import type { GenericDocumentSource } from "@/lib/documents/catalogSource";
 import type { GenericFormData } from "@/lib/documents/fillGenericTemplate";
 import type { GenericFieldsPatch } from "@/lib/documents/mergeGenericFields";
 import { mergeGenericFields } from "@/lib/documents/mergeGenericFields";
+import type { SavedDocument } from "@/lib/documents/savedDocument";
 import { defaultNdaFormData, type NdaFormData } from "@/lib/nda/types";
 
 const NDA_DOCUMENT_ID = "mutual-nda";
+
+function initialNdaForm(initialDocument?: SavedDocument | null): NdaFormData {
+  if (initialDocument?.documentType !== NDA_DOCUMENT_ID) return defaultNdaFormData;
+  return { ...defaultNdaFormData, ...(initialDocument.fields as Partial<NdaFormData>) };
+}
+
+function initialGenericFields(initialDocument?: SavedDocument | null): GenericFormData {
+  if (!initialDocument || initialDocument.documentType === NDA_DOCUMENT_ID) return {};
+  return initialDocument.fields as GenericFormData;
+}
 
 export function DocumentCreator({
   ndaStandardTermsSource,
   ndaCoverPageIntro,
   ndaCoverPageFooter,
   genericDocuments,
+  initialDocument,
 }: {
   ndaStandardTermsSource: string;
   ndaCoverPageIntro: string;
   ndaCoverPageFooter: string;
   genericDocuments: Record<string, GenericDocumentSource>;
+  initialDocument?: SavedDocument | null;
 }) {
-  const [documentType, setDocumentType] = useState<string | null>(null);
-  const [ndaForm, setNdaForm] = useState<NdaFormData>(defaultNdaFormData);
-  const [genericFields, setGenericFields] = useState<GenericFormData>({});
+  const [documentId, setDocumentId] = useState<number | null>(initialDocument?.id ?? null);
+  const [documentType, setDocumentType] = useState<string | null>(
+    initialDocument?.documentType ?? null
+  );
+  const [ndaForm, setNdaForm] = useState<NdaFormData>(initialNdaForm(initialDocument));
+  const [genericFields, setGenericFields] = useState<GenericFormData>(
+    initialGenericFields(initialDocument)
+  );
   const [mobileView, setMobileView] = useState<"form" | "document">("form");
+
+  async function saveDocument(type: string, fields: Record<string, unknown>) {
+    const response = await fetch("/api/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: documentId, documentType: type, fields }),
+    });
+    if (response.ok) {
+      const saved: SavedDocument = await response.json();
+      setDocumentId(saved.id);
+    }
+  }
 
   function handleFieldsExtracted(resolvedType: string, fields: Record<string, unknown>) {
     if (resolvedType === NDA_DOCUMENT_ID) {
-      setNdaForm((current) => mergeNdaFields(current, fields as NdaFieldsPatch));
+      setNdaForm((current) => {
+        const merged = mergeNdaFields(current, fields as NdaFieldsPatch);
+        saveDocument(resolvedType, merged);
+        return merged;
+      });
     } else {
-      setGenericFields((current) =>
-        mergeGenericFields(current, fields as GenericFieldsPatch)
-      );
+      setGenericFields((current) => {
+        const merged = mergeGenericFields(current, fields as GenericFieldsPatch);
+        saveDocument(resolvedType, merged);
+        return merged;
+      });
     }
   }
 

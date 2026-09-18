@@ -13,14 +13,17 @@ each turn, so this endpoint is stateless.
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from litellm import completion
 from openai import APIError
 from pydantic import BaseModel, ValidationError, create_model
 
 from backend import documents
+from backend.auth import get_current_user
 
-router = APIRouter(prefix="/api/chat", tags=["chat"])
+router = APIRouter(
+    prefix="/api/chat", tags=["chat"], dependencies=[Depends(get_current_user)]
+)
 
 MODEL = "openrouter/openai/gpt-oss-120b"
 EXTRA_BODY = {"provider": {"order": ["cerebras"]}}

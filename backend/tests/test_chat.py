@@ -21,7 +21,7 @@ def _fake_completion_response_with(reply: str, documentType: str | None) -> obje
     return SimpleNamespace(choices=[choice])
 
 
-def test_chat_returns_reply_and_extracted_fields_for_the_nda(client, monkeypatch):
+def test_chat_returns_reply_and_extracted_fields_for_the_nda(auth_client, monkeypatch):
     def fake_completion(**kwargs):
         assert kwargs["model"] == chat.MODEL
         return _fake_completion_response(
@@ -31,7 +31,7 @@ def test_chat_returns_reply_and_extracted_fields_for_the_nda(client, monkeypatch
 
     monkeypatch.setattr(chat, "completion", fake_completion)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/chat",
         json={
             "documentType": "mutual-nda",
@@ -48,7 +48,7 @@ def test_chat_returns_reply_and_extracted_fields_for_the_nda(client, monkeypatch
     assert body["fields"]["partyOne"] is None
 
 
-def test_chat_sends_system_prompt_and_full_history_to_the_model(client, monkeypatch):
+def test_chat_sends_system_prompt_and_full_history_to_the_model(auth_client, monkeypatch):
     captured = {}
 
     def fake_completion(**kwargs):
@@ -57,7 +57,7 @@ def test_chat_sends_system_prompt_and_full_history_to_the_model(client, monkeypa
 
     monkeypatch.setattr(chat, "completion", fake_completion)
 
-    client.post(
+    auth_client.post(
         "/api/chat",
         json={
             "documentType": "mutual-nda",
@@ -76,7 +76,7 @@ def test_chat_sends_system_prompt_and_full_history_to_the_model(client, monkeypa
     assert sent[3] == {"role": "user", "content": "our company is Acme"}
 
 
-def test_chat_returns_a_clean_error_when_the_llm_call_fails(client, monkeypatch):
+def test_chat_returns_a_clean_error_when_the_llm_call_fails(auth_client, monkeypatch):
     def failing_completion(**kwargs):
         raise APIConnectionError(
             message="connection reset",
@@ -85,7 +85,7 @@ def test_chat_returns_a_clean_error_when_the_llm_call_fails(client, monkeypatch)
 
     monkeypatch.setattr(chat, "completion", failing_completion)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/chat", json={"messages": [{"role": "user", "content": "hello"}]}
     )
 
@@ -93,7 +93,7 @@ def test_chat_returns_a_clean_error_when_the_llm_call_fails(client, monkeypatch)
 
 
 def test_chat_returns_a_clean_error_when_the_model_reply_is_malformed(
-    client, monkeypatch
+    auth_client, monkeypatch
 ):
     def fake_completion(**kwargs):
         message = SimpleNamespace(content="not valid json")
@@ -102,14 +102,14 @@ def test_chat_returns_a_clean_error_when_the_model_reply_is_malformed(
 
     monkeypatch.setattr(chat, "completion", fake_completion)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/chat", json={"messages": [{"role": "user", "content": "hello"}]}
     )
 
     assert response.status_code == 502
 
 
-def test_chat_with_no_document_type_runs_the_selection_prompt(client, monkeypatch):
+def test_chat_with_no_document_type_runs_the_selection_prompt(auth_client, monkeypatch):
     captured = {}
 
     def fake_completion(**kwargs):
@@ -121,7 +121,7 @@ def test_chat_with_no_document_type_runs_the_selection_prompt(client, monkeypatc
 
     monkeypatch.setattr(chat, "completion", fake_completion)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/chat",
         json={"messages": [{"role": "user", "content": "I need a HIPAA contract"}]},
     )
@@ -136,7 +136,7 @@ def test_chat_with_no_document_type_runs_the_selection_prompt(client, monkeypatc
     assert "mutual-nda: Mutual Non-Disclosure Agreement" in system_prompt
 
 
-def test_chat_selection_can_resolve_a_document_type(client, monkeypatch):
+def test_chat_selection_can_resolve_a_document_type(auth_client, monkeypatch):
     def fake_completion(**kwargs):
         return _fake_completion_response_with(
             reply="Let's set up your BAA.", documentType="baa"
@@ -144,7 +144,7 @@ def test_chat_selection_can_resolve_a_document_type(client, monkeypatch):
 
     monkeypatch.setattr(chat, "completion", fake_completion)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/chat",
         json={"messages": [{"role": "user", "content": "I need a BAA"}]},
     )
@@ -153,7 +153,7 @@ def test_chat_selection_can_resolve_a_document_type(client, monkeypatch):
     assert response.json()["documentType"] == "baa"
 
 
-def test_chat_runs_the_generic_path_for_a_non_nda_document(client, monkeypatch):
+def test_chat_runs_the_generic_path_for_a_non_nda_document(auth_client, monkeypatch):
     captured = {}
 
     def fake_completion(**kwargs):
@@ -165,7 +165,7 @@ def test_chat_runs_the_generic_path_for_a_non_nda_document(client, monkeypatch):
 
     monkeypatch.setattr(chat, "completion", fake_completion)
 
-    response = client.post(
+    response = auth_client.post(
         "/api/chat",
         json={
             "documentType": "baa",
@@ -184,7 +184,7 @@ def test_chat_runs_the_generic_path_for_a_non_nda_document(client, monkeypatch):
 
 
 def test_chat_prompts_include_the_consistency_check_for_nda_and_generic_docs(
-    client, monkeypatch
+    auth_client, monkeypatch
 ):
     captured = []
 
@@ -194,14 +194,14 @@ def test_chat_prompts_include_the_consistency_check_for_nda_and_generic_docs(
 
     monkeypatch.setattr(chat, "completion", fake_completion)
 
-    client.post(
+    auth_client.post(
         "/api/chat",
         json={
             "documentType": "mutual-nda",
             "messages": [{"role": "user", "content": "hello"}],
         },
     )
-    client.post(
+    auth_client.post(
         "/api/chat",
         json={
             "documentType": "baa",
@@ -213,8 +213,15 @@ def test_chat_prompts_include_the_consistency_check_for_nda_and_generic_docs(
     assert all(chat.FLEXIBILITY_INSTRUCTION in prompt for prompt in captured)
 
 
-def test_chat_rejects_an_unknown_document_type(client, monkeypatch):
+def test_chat_requires_authentication(client):
     response = client.post(
+        "/api/chat", json={"messages": [{"role": "user", "content": "hello"}]}
+    )
+    assert response.status_code == 401
+
+
+def test_chat_rejects_an_unknown_document_type(auth_client, monkeypatch):
+    response = auth_client.post(
         "/api/chat",
         json={
             "documentType": "not-a-real-document",

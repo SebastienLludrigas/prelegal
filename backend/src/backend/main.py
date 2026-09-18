@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from backend.auth import router as auth_router
 from backend.chat import router as chat_router
 from backend.database import init_db
+from backend.saved_documents import router as documents_router
 
 FRONTEND_DIST_DIR = os.environ.get("FRONTEND_DIST_DIR", "frontend_dist")
 
@@ -19,4 +20,5 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(documents_router)
 app.frontend("/", directory=FRONTEND_DIST_DIR, check_dir=False)

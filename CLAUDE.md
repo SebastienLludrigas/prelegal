@@ -85,6 +85,14 @@ Note: "the initial implementation is a frontend-only prototype" above is now his
 - The AI now checks each new answer against fields already collected and rejects inconsistent or implausible ones (e.g. an end date before the effective date, a person's name where a place is expected) instead of filling them in silently
 - The AI will invent, choose, or skip a value itself when the user explicitly asks it to (any language, e.g. "invente", "peu importe", "I don't know") — fixed a real loop where it kept re-asking the same question instead of complying
 
+### Completed (PL-8)
+- Real auth: `bcrypt` password hashing, JWT (PyJWT) held in an httponly session cookie — `signup`/`signin` set it, `logout` clears it, `GET /api/auth/me` restores the session on page load/refresh so users stay signed in
+- `/api/chat` and the new `/api/documents` routes require authentication (`get_current_user` dependency in `auth.py`)
+- New `documents` SQLite table + `saved_documents.py` router: the frontend autosaves the current document (`POST /api/documents`, upsert by `id`) after every field the chat extracts; `GET /api/documents` lists a user's documents, `GET /api/documents/{id}` reopens one
+- Frontend: `AppShell` adds a header (My documents / New document tabs, user email, log out) once logged in; `DocumentHistory` lists saved documents and reopens one into `DocumentCreator` pre-filled; starting "New document" always resets to a blank form even after reopening one
+- A "this is a draft, not legal advice" disclaimer renders at the end of every document, on screen and in the printed PDF
+- Color palette switched from the old ink/burgundy "legal paper" theme to the one documented above (navy/purple/yellow/blue/gray), via the CSS variables in `globals.css` — no component markup changed
+
 ### Not started
-- **PL-8** — real multi-user auth (password hashing, sessions) and final polish
+- Further polish beyond PL-8's scope (e.g. richer document-history UI, password reset, multi-device session management) is not planned yet
 
