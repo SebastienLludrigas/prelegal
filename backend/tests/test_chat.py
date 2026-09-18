@@ -210,6 +210,7 @@ def test_chat_prompts_include_the_consistency_check_for_nda_and_generic_docs(
     )
 
     assert all(chat.CONSISTENCY_INSTRUCTION in prompt for prompt in captured)
+    assert all(chat.FLEXIBILITY_INSTRUCTION in prompt for prompt in captured)
 
 
 def test_chat_rejects_an_unknown_document_type(client, monkeypatch):

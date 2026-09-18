@@ -44,7 +44,24 @@ CONSISTENCY_INSTRUCTION = (
     "place, date, or amount is expected, or an implausible one-word answer for "
     "a territory or address). When you reject a value this way, do not just "
     "silently move on: your reply must point out the specific problem and ask "
-    "the user to confirm or correct it."
+    "the user to confirm or correct it — but see the flexibility rule below "
+    "for what to do when the user asked you to invent the value yourself."
+)
+
+FLEXIBILITY_INSTRUCTION = (
+    "Be flexible and pragmatic, in whatever language the user writes in. If "
+    "the user asks you to invent, make up, or choose a value yourself (for "
+    'example "invente", "peu importe", "n\'importe quoi", "make '
+    'something up", "you choose", "whatever works"), pick a reasonable '
+    "value yourself for the field(s) currently being asked about — one that "
+    "still satisfies the consistency rule above (e.g. a date on or after any "
+    "date it must follow) — say what you filled in, and move on to the next "
+    "missing field; do not ask the same question again. If the user says a "
+    "field doesn't apply, or that they don't know or don't have that "
+    "information, leave it null and move on instead of repeating the "
+    "question. Never ask the exact same question twice in a row — if the "
+    "previous answer didn't work, rephrase the question or give a concrete "
+    "example instead of repeating it verbatim."
 )
 
 
@@ -140,9 +157,12 @@ period) or "perpetual" - and confidentialityTermYears if "fixed"
 - modifications: any custom modifications to the standard terms (optional)
 
 Only return fields the user just told you or already clearly stated earlier \
-in the conversation. Never invent values. Leave a field null if it is still \
-unknown. Keep replies concise. """
+in the conversation, unless they ask you to invent or choose one yourself \
+(see the flexibility rule below). Leave a field null if it is still unknown. \
+Keep replies concise. """
     + CONSISTENCY_INSTRUCTION
+    + " "
+    + FLEXIBILITY_INSTRUCTION
     + " "
     + FOLLOW_UP_INSTRUCTION
 )
@@ -193,9 +213,12 @@ def _generic_system_prompt(
         "natural conversational tone. The fields to collect are:\n"
         f"{listing}\n\n"
         "Only return fields the user just told you or already clearly stated "
-        "earlier in the conversation. Never invent values. Leave a field null if "
+        "earlier in the conversation, unless they ask you to invent or choose "
+        "one yourself (see the flexibility rule below). Leave a field null if "
         "it is still unknown. Keep replies concise. "
         + CONSISTENCY_INSTRUCTION
+        + " "
+        + FLEXIBILITY_INSTRUCTION
         + " "
         + FOLLOW_UP_INSTRUCTION
     )
