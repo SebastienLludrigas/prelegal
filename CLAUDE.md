@@ -80,8 +80,10 @@ Note: "the initial implementation is a frontend-only prototype" above is now his
 ### Completed (PL-7)
 - Chat now starts with no document type preselected: the AI identifies which of the 12 `catalog.json` entries the user wants (the NDA's two entries collapse into one `mutual-nda` document type), or explains it's unsupported and suggests the closest match, waiting for confirmation before proceeding
 - The Mutual NDA keeps its hand-written field schema and cover-page UI from PL-6, unchanged; the other 11 document types derive their fields generically from the `_link` spans in their `templates/*.md` Standard Terms (no per-document hand curation), rendered with the same generic markdown preview, filled inline
-- Fixed: keyboard focus now returns to the chat input after every reply (success or error)
+- Fixed: keyboard focus now returns to the chat input after every reply (success or error), and the chat auto-scrolls to the latest message
 - Strengthened the system prompt so the AI reliably asks a follow-up question whenever a field is still missing
+- The AI now checks each new answer against fields already collected and rejects inconsistent or implausible ones (e.g. an end date before the effective date, a person's name where a place is expected) instead of filling them in silently
+- The AI will invent, choose, or skip a value itself when the user explicitly asks it to (any language, e.g. "invente", "peu importe", "I don't know") — fixed a real loop where it kept re-asking the same question instead of complying
 
 ### Not started
 - **PL-8** — real multi-user auth (password hashing, sessions) and final polish
