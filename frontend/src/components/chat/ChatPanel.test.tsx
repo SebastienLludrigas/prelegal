@@ -127,4 +127,21 @@ describe("ChatPanel", () => {
 
     expect(input).toHaveFocus();
   });
+
+  it("scrolls the conversation into view as new messages arrive", async () => {
+    const scrollIntoView = vi.fn();
+    vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(
+      scrollIntoView
+    );
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ reply: "ok" })));
+    renderPanel();
+    const scrollCallsOnMount = scrollIntoView.mock.calls.length;
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText("Message"), "hello");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await screen.findByText("ok");
+
+    expect(scrollIntoView.mock.calls.length).toBeGreaterThan(scrollCallsOnMount);
+  });
 });

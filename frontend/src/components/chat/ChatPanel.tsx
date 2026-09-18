@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { ChatApiResponse, ChatMessage } from "@/lib/chat/types";
 
 const GREETING: ChatMessage = {
@@ -36,6 +36,11 @@ export function ChatPanel({
   const [submitting, setSubmitting] = useState(false);
   const [documentType, setDocumentType] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, [messages, error]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,6 +95,7 @@ export function ChatPanel({
             {message.content}
           </p>
         ))}
+        <div ref={bottomRef} />
       </div>
 
       {error && <p className="mt-2 text-[13px] text-red-700">{error}</p>}
